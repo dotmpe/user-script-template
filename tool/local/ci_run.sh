@@ -16,7 +16,7 @@ var=./$VAR/redo_default.bash
 export REDO_ALL=y
 
 # Reset caches including user-data state (for now.. TODO: CI build env finetune)
-rm -f .local/build/ .local/cache/ .local/user/data/
+rm -rf .local/build/ .local/cache/ .local/user/data/
 
 redo @config
 redo -j10 -k @config all

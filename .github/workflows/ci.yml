@@ -2,10 +2,11 @@
 name: CI
 on:
   push:
-    branches: ["**"]
+    branches: ['**']
+    tags: ['v*']
   pull_request:
-    branches: ["**"]
-  workflow_dispatch:
+    branches: ['**']
+  workflow_dispatch: # NOTE: add manual triggers and parameters here
 
 jobs:
   test:
@@ -18,12 +19,16 @@ jobs:
           clean: true
           fetch-depth: 0
 
+      - name: Configure env
+        run: |
+          \builtin . ./tool/local/ci_config.bash
+
       - name: Install dependencies
         run: |
-          scr_pre=tool/local
-          \builtin . ${scr_pre:?}/ubuntu_ci_install.sh
+          [[ ! -e .env.sh ]] || \builtin . ./.env.sh
+          \builtin . ubuntu_ci_install.bash
 
       - name: Run Redo for all build/check/test targets
         run: |
-          scr_pre=tool/local
-          \builtin . ${scr_pre:?}/ci_run.sh
+          [[ ! -e .env.sh ]] || \builtin . ./.env.sh
+          \builtin . ci_run.bash

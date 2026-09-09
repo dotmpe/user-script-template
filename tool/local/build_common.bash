@@ -1,6 +1,14 @@
-#!/usr/bin/env bash
+# build_common.bash is the home for all target recipes
+#
+# Copyright (c) 2026 .mpe  <me@dotmpe.com>
+#
+# Distributed under terms of the MIT license.
 
-# common_build.sh is the home for all target recipes
+:config-warning() {
+  config_seed=etc/redo_default+seed.bash
+  build_config=.local/etc/redo_default.bash
+  say.v "Config incomplete at ${build_config} (see seed at ${config_seed@Q})" || return
+}
 
 :uc-diag:forbidden-patterns() {
   # NOTE: keep patterns in plain text config, outside scans
@@ -20,14 +28,15 @@
 }
 
 :uc-diag:shell-lint-check() {
-  \builtin command shellcheck "$script" >&${USER_FD:?}
+  local lang
+  lang=${xredo_ext_langmap["${script##*.}"]:-bash}
+  \builtin command shellcheck --shell=$lang "$script" >&${USER_FD:?}
 }
 
 :uc-diag:shell-load-plus-lint-check() {
   ( \builtin . "$script" ) ||
     :failerr "E$? on test-loading ${script@Q}" || return
-  \builtin . <(:uc-diag:shell-lint-check) &&
-  say.v "Load and shellcheck passed for ${script@Q}"
+  \builtin . <(:uc-diag:shell-lint-check)
 }
 
 :uc-diag:todo-comments() {
@@ -55,15 +64,16 @@
 
 :xredo-build-target() {
   redo-always &&
-  :cache-load ./$ETC/redo_default.bash &&
-  redo-ifchange "${xredo_build_targets[@]:?}"
+  if [[ ${xredo_build_targets[*]:+set} ]]; then
+    redo-ifchange "${xredo_build_targets[@]:?}" || return
+  else
+    :config-warning
+    say.v "No build targets to run (ignored)"
+  fi
 }
 
 :xredo-build-ns1-target() {
   local src
-  if [[ ! ${sources[*]} ]]; then
-    :cache-load ./$VAR/redo_default.bash || return
-  fi
   for src in "${sources[@]:?}"; do
     src=${src#src/}
     targets+=( "@index:${src:?}" )
@@ -102,7 +112,7 @@
 
   ( *.yaml | *.md )
       # :uc-diag:forbidden-patterns &&
-      :uc-diag:todo-comments
+      # :uc-diag:todo-comments
     ;;
 
   ( * ) :failerr "There is no check action for script ${script@Q}"
@@ -142,16 +152,15 @@
     targets+=( "@check:$file" )
   done
   redo-ifchange "${targets[@]}" &&
-  :cache-load ./$ETC/redo_default.bash &&
   if [[ ! ${xredo_build_targets[*]:+set} ]]; then
-    :failerr "No build targets set"
-    TODO "guided setup? copy seed/example files for CI build?"
+    say.err "No build targets set (ignored)"
+    # TODO "guided setup? copy seed/example files for CI build?"
   fi
 }
 
 :xredo-config-target() {
   local sources tools
-  redo-ifchange ${scr_pre:?}/build-select.sh &&
+  redo-ifchange "${build_select:?}" || return
   if [[ -d src/ ]]; then
     sources=( src/*/*.inc )
     :dump-pretty-globals sources >| ./$VAR/redo_default.bash &&
@@ -178,7 +187,7 @@
   src=src/${XREDO_TARGET#@index:}
 
   redo-ifchange "$src" &&
-  \builtin . ${scr_pre:?}/init-pp.sh >&${USER_FD:?} &&
+  \builtin . ${scr_pre:?}/init-pp.bash >&${USER_FD:?} &&
   .run "$src" .match-line > /dev/null || :failerr "Indexing ${src@Q}"
 }
 
@@ -186,7 +195,7 @@
   : "${XREDO_TARGET#pack/ns[0-9]/}"
   src=src/${_%.bash}.inc
 
-  redo-ifchange ${scr_pre:?}/build-select.sh "$src" &&
+  redo-ifchange ${scr_pre:?}/build-select.bash "$src" &&
   mkdir -p "${XREDO_TARGET%/*}" &&
   \builtin . ${scr_pre:?}/init-pp.sh >&${USER_FD:?} &&
   .run "$src" .match-line > "$BUILD_TARGET_TMP" ||
@@ -235,6 +244,7 @@
   # TODO: validate actual data with schema
   say.debug "Starting pre-test checks"
   if [[ ! -d pack/ns1 ]]; then
+    :config-warning
     :failerr "Nothing to test" || return
   fi
   for x in pack/ns1/usrtools_usr{conf,scr}/*.bash; do
@@ -253,4 +263,4 @@
   redo-ifchange "${targets[@]}" || return
 }
 
-# Id: common_build                               vim:set ft=bash sw=2 sts=2 et:
+# Id: build_common                               vim:set ft=bash sw=2 sts=2 et:

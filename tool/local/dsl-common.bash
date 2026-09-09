@@ -2,12 +2,13 @@
 # Copyright 2026 .mpe  <me@dotmpe.com>
 #
 # Distributed under terms of the MIT license.
+#
 
-if [[ ${0##*/} = common-dsl.bash ]]; then
+if [[ ${0##*/} = dsl-common.bash ]]; then
   scr_pre=tool/local
-  \builtin . ${scr_pre:?}/common_setup.bash
+  \builtin . setup_common.bash
   shopt -s extdebug expand_aliases
-  \builtin . ${scr_pre:?}/common_env.bash
+  \builtin . env_common.bash
 fi
 
 :-() {
@@ -16,69 +17,9 @@ fi
   ! (($#)) || "$@"
 }
 
-:ignore() { "$@" || :; }
-:pass() { return; }
-:failerr () {
-  local stat=${2:-$?}
-: about "Output message and set or pass-trough non-zero status (input 256 for 0)"
-: extended "Default is 1, and cannot be 0."
-: extended "The number is truncated to 255 and then rolls over again, so 256 equals 0, etc."
-: input "${1?$(:argv-err 1 'Failure message')}"
-  ((stat)) || stat=1
-  if [[ $stat -gt 255 ]]; then
-    ((stat-=256))
-  fi
-  # FIXME: use USER_FD as output
-  if [[ -n ${_os_script_path['us-palette']:+set} && -n ${COLORTERM:+set} ]]; then
-    if [[ $stat -eq 0 ]]; then
-      echo "${C_PASS-}$1${NORMAL-}" 1>&2
-    else
-      if [[ $stat == 1 ]]; then
-        echo "${C_ABNORMAL-}$1${NORMAL-}" 1>&2
-      else
-        if [[ $stat == 2 ]]; then
-          echo "${C_ERROR-}$1${NORMAL-}" 1>&2
-        else
-          if [[ $stat -gt 2 && $stat -lt 128 ]]; then
-            echo "${C_ABNORMAL-}$1${NORMAL-}" 1>&2
-          else
-            if [[ $stat -gt 127 && $stat -lt 193 ]]; then
-              echo "${C_AUXILIARY-}$1${NORMAL-}" 1>&2
-            else
-              if [[ $stat -gt 192 && $stat -lt 255 ]]; then
-                echo "${C_CONTEXT-}$1${NORMAL-}" 1>&2
-              else
-                echo "${C_SECONDARY-}$1${NORMAL-}" 1>&2
-              fi
-            fi
-          fi
-        fi
-      fi
-    fi
-  else
-    echo "$1" 1>&2
-  fi
-  return ${stat}
-}
-
 :append-path () {
 : name User-Script.OS.path-assert
   assert=1 :path-append "$@" || test 1 -eq $? || return $_
-}
-
-:path-append() {
-: name User-Script.OS.path-append
-: about "Simple PATH helper to append only new, unique instance"
-: param "<Directory ...> [<Var=PATH>]"
-: extended "Using this helps keeping PATH cleaner, but it doesnt behave like \path_append but returns false (1) if already found"
-: notes TODO "Really should write sys-wordv-add or something"
-: notes "This does not export PATH"
-: notes "This does not require explicit PATH name for single dir argument, and last argument can always be left empty for default"
-: notes "Not exactly like the same implementation as shipped with Debian/Ubuntu, see -assert variant"
-: completion 'complete -A directory'
-  local dirc _var
-  ! (($#-1)) && dirc=1 || dirc=$#-1 _var=${*: $#:1}
-  :lookup-append "${@:1: $dirc}" "${_var:-PATH}"
 }
 
 :lookup-append() {
@@ -106,32 +47,6 @@ fi
         ;;
     esac
   done
-}
-
-:isfun() {
-: name User-Script.Shell.function-exists
-: param ' ~ <Funcname> ...'
-: completion 'complete -A function'
-: input "${1?$(:argv-err 1 'Function name')}"
-  :pass "$(declare -F -- "${_}")"
-}
-
-:funbody () {
-: name User-Script.Shell.function-body
-: param '<Ref-fun> [<Dest-var>] ...'
-: input "${1?$(:argv-err 1 'Function name expected')}"
-  (($#-1)) &&
-  local -n _out=${2?$(:argv-err 2 'Output name expected')} || local _out
-
-  :pass "$(typeset -f "$1")" || return
-  : "${_#* () }"
-  : "${_:4:-2}"
-  _out="$_"
-  if [[ ! ${_out:+set} ]]; then
-    say.v "Empty function body for ${1@Q} (ignored)"
-  else
-    (($#>1)) || printf '%s\n' "$_out"
-  fi
 }
 
 :cache-load () {
@@ -169,40 +84,28 @@ fi
       say.debug "Cache loaded ($_ bytes) for ${*:2}" || :
       local -n _ref
       for _ref in "${@:2}"; do
-        [[ ! -n "${_ref[*]:+set}" ]] ||
+        [[ -z "${_ref[*]:+set}" ]] ||
           say.info "Found ${#_ref[@]} ${!_ref} items in cache"
       done
     }
   } || say.debug "Missing or empty ${1@Q} cache (E$?, ignored)"
 }
 
-
-:argv-err() {
-: about 'Output helper for unset/undefined argument position expressions'
-: param '~ <Position> <Label> <"expected "> <"at position "> ...'
-  set -- "${FUNCNAME[1]}" "$2" "${3:-expected }" "${4:-at position }" "$1"
-  printf '%s: %s %s%s%i\n' "$@"
+:path-append() {
+: name User-Script.OS.path-append
+: about "Simple PATH helper to append only new, unique instance"
+: param "<Directory ...> [<Var=PATH>]"
+: extended "Using this helps keeping PATH cleaner, but it doesnt behave like \path_append but returns false (1) if already found"
+: notes TODO "Really should write sys-wordv-add or something"
+: notes "This does not export PATH"
+: notes "This does not require explicit PATH name for single dir argument, and last argument can always be left empty for default"
+: notes "Not exactly like the same implementation as shipped with Debian/Ubuntu, see -assert variant"
+: completion 'complete -A directory'
+  local dirc _var
+  ! (($#-1)) && dirc=1 || dirc=$#-1 _var=${*: $#:1}
+  :lookup-append "${@:1: $dirc}" "${_var:-PATH}"
 }
 
-:say-when() {
-  local min_level=${1:-2}
-  (( VERBOSITY >= min_level )) || return 0
-  printf '%s\n' "${*:2}" >&${USER_FD}
-}
-
-:unset-err() {
-: about 'Output helper for unset/undefined name expressions'
-: param '~ <Symbol> <Label> <"expected "> <"at name "> ...'
-  set -- "${FUNCNAME[1]}" "$2" "${3:-expected }" "${4:-at name }" "$1"
-  printf '%s: %s %s%s%s\n' "$@"
-}
-
-:to-v() {
-: about 'Put output on USER output (regardless of verbosity)'
-: param '~ <...>'
-: tag dev
-  "$@" >&${USER_FD}
-}
 
 inline() {
   ! (($#)) || say.err "Inline broken (fun call)"
@@ -222,37 +125,6 @@ else
     say@v "${FUNCNAME[1]}: $(TODO "bash call arg inspection for outer function?")"
   }
 fi
-
-printf.lines.arr() {
-  local -n _pfl_arr=${1:?Array name}
-  printf.lines "${_pfl_arr[@]}"
-}
-printf.lines.array-map.tab() {
-  local _pfl_k
-  local -n _pfl_arr=${1:?Array name} _pfl_item='_pfl_arr["$_pfl_k"]'
-  shift
-  (($#)) || set -- "${!_pfl_arr[@]}"
-  for _pfl_k; do
-    : "${_pfl_item//$'\n'/$'\n  '}"
-    printf '%s\t%s\n' "$_pfl_k" "${_-NULL}"
-  done
-}
-
-say.err() { :say-when 1 "$1"; }
-say.info() { :say-when 2 "$1"; }
-say.v() { :say-when 3 "$1"; }
-say.debug() { :say-when 4 "$1"; }
-
-# XXX: helpers for user-equiv. for log, temporary until better init
-:_debug() {
-  ((QUIET)) || ! ((DEBUG)) || :say-when 4 "$1"
-}
-:_info() {
-  ((QUIET)) || :say-when 2 "$@"
-}
-:_notice() {
-  ((QUIET)) || :say-when 3 "$@"
-}
 
 # other dev-mode impl. helper, to be stripped/replaced before pack and dist
 TODO() {
@@ -550,7 +422,7 @@ User-Script.Shell.variable-type-cache() {
 
 
 
-if [[ ${0##*/} = common-dsl.bash ]]; then
+if [[ ${0##*/} = dsl-common.bash ]]; then
 
   myArgsRead() {
     :read-args 'myArgsRead{A,B}' "$@"
@@ -577,4 +449,4 @@ if [[ ${0##*/} = common-dsl.bash ]]; then
   :to-v declare -f myArgsRead
 fi
 
-# Id: common-dsl                                 vim:set ft=bash sw=2 sts=2 et:
+# Id: dsl-common                                 vim:set ft=bash sw=2 sts=2 et:

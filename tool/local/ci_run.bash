@@ -1,4 +1,4 @@
-#! /bin/sh
+. env_common.bash
 
 ETC=.local/etc
 VAR=.local/var
@@ -13,12 +13,13 @@ var=./$VAR/redo_default.bash
   cp ./etc/redo_default+seed.bash "$etc" &&
   echo "New file $etc" >&2
 }
-export REDO_ALL=y
+export REDO_ALL=${REDO_ALL:-y}
 
 # Reset caches including user-data state (for now.. TODO: CI build env finetune)
 rm -rf .local/build/ .local/cache/ .local/user/data/
+mkdir -vp .local/user/data >&2
 
-redo @config
-redo -j10 -k @config all
+redo @config &&
+redo -j10 -k all
 
-# Id: ci_run                                       vim:set ft=sh sw=2 sts=2 et:
+# Id: ci_run                                     vim:set ft=bash sw=2 sts=2 et:

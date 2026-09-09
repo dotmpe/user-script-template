@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# .build-select.sh - Configurable main project build file for default.do
+# build-select.bash - Configurable main project build file for default.do
 #
 # Copyright 2026 .mpe  <me@dotmpe.com>
 #
@@ -11,23 +11,22 @@ XREDO_TARGET="${REDO_PWD:+$REDO_PWD/}${REDO_TARGET:?}"
 XREDO_BASE=${XREDO_TARGET%%:*}
 XREDO_NODE=${XREDO_TARGET%:*}
 
-ETC=.local/etc
-VAR=.local/var
-scr_pre=tool/local
-
 case "${XREDO_TARGET}" in @config | @*:config ) ;; ( * )
 
-  # FIXME: cleanup
+  # FIXME: cleanup; test redo-ifdone and see what is going on
   #\builtin command -v redo-ifdone >/dev/null 2>&1 &&
   #if ! >/dev/null 2>&1 redo-ifdone @config; then
-  redo_targets="$(redo-targets)" &&
-  if ! grep -q '^@config' <<< "$redo_targets"; then
-      say.err "Must run redo @config first (to build ${XREDO_TARGET@Q})"
+  # This is incomplete; this just checks 'did we ever try to build X'
+  #redo_targets="$(redo-targets)" &&
+  #if ! grep -q '^@config' <<< "$redo_targets"; then
+  if ! >&2 redo-ifdone @config; then
+      say.err "Must run @config first (to build ${XREDO_TARGET@Q})"
       exit 1
-  fi ||
-    :ignore :failerr "Warning: Ignored redo-ifdone (targets=${redo_targets@Q})"
+  fi
 
 esac
+
+\builtin . "${build_common:?}" &&
 
 case "${XREDO_TARGET}" in
 
@@ -38,23 +37,23 @@ case "${XREDO_TARGET}" in
   ;;
 
 ( @build:config )
-    redo-ifchange ${scr_pre:?}/build-select.sh &&
-    redo-ifchange $scr_pre/common_build.sh &&
-    redo-stamp < <(grep -Po '^\(\ [^\)]+\ \)$' $scr_pre/build-select.sh) &&
-    redo-stamp < <(grep -Po '^:xredo-[A-Za-z0-9-]+(?=\(\))' $scr_pre/common_build.sh)
+    redo-ifchange "${build_configs[@]:?}" &&
+    redo-stamp < <(grep -Po '^\(\ [^\)]+\ \)$' "${build_select:?}") &&
+    redo-stamp < <(grep -Po '^:xredo-[A-Za-z0-9.:+-]+(?=\(\))' "${build_common:?}")
   ;;
 
 ( @build:schema:* )
-    \builtin . $scr_pre/build_schema.sh &&
+    \builtin . "${build_schema:?}" &&
     :xredo-build-schema-recipe &&
     redo-stamp <<< "$(:funbody $_)" &&
     redo-ifchange @build:config
   ;;
 
 ( @build:schema )
-    \builtin . $scr_pre/build_schema.sh &&
+    \builtin . "${build_schema:?}" &&
     :xredo-build-schema-target &&
     redo-stamp <<< "$(:funbody $_)" &&
+    redo-stamp < <(grep -Po '^:xredo-[A-Za-z0-9.:+-]+(?=\(\))' "${build_schema:?}") &&
     redo-ifchange @build:config
   ;;
 
@@ -120,8 +119,6 @@ case "${XREDO_TARGET}" in
 
 
 ( * )
-    :cache-load ./$ETC/redo_default.bash
-
     return ${_E_next:-196}
 
 esac

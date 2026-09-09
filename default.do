@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2026 .mpe  <me@dotmpe.com>
+# Copyright (c) 2026 .mpe  <me@dotmpe.com>
 #
 # Distributed under terms of the MIT license.
 #
@@ -9,24 +9,26 @@ shopt -s failglob nullglob
 IFS=$' \t\n'
 
 default_do_env() {
+: env "${_E_GAE:=193}"
+: env "${_E_MA:=194}"
+: env "${_E_continue:=195}"
+: env "${_E_next:=196}"
+: env "${_E_break:=197}"
+: env "${_E_retry:=198}"
+  ! (($#)) || return ${_E_GAE:?}
+
   [[ ! -e .env.sh ]] || \builtin . ./.env.sh
-  if [[ -e .local/cache/xredo_env.bash ]]; then
-    \builtin . .local/cache/xredo_env.bash || return
+  if [[ -e ${XREDO_ENV:=.local/build/xredo_env.bash} ]]; then
+    \builtin . "${XREDO_ENV:?}" || return
   else
-    if declare -F xredo_do_env; then
-      xredo_do_env || return
-    else
-      : "${scr_pre:=tool/local}"
-      [[ ${xredo_env_sources[*]:+ne} ]] ||
-        xredo_env_sources=(
-          "$scr_pre/common_env.bash"
-          "$scr_pre/common_build.sh"
-          "$scr_pre/common-dsl.bash"
-        )
-      for xredo_env_src in "${xredo_env_sources[@]}"; do
-        \builtin . "${xredo_env_src:?}" || return
-      done
-    fi
+    case "${XREDO_TARGET}" in @config )
+        bash ./configure.bash &&
+        \builtin . "${XREDO_ENV:?}" || return
+      ;; ( * )
+        >&2 echo "Config build required"
+        exit 1
+        # : "${BUILD_SELECT_SH:=.build-select.sh}"
+    esac
   fi
 }
 
@@ -38,10 +40,9 @@ default_do_main() {
   default_do_env ||
     :failerr "E$? $_" || return
 
-  declare -I BUILD_SELECT_SH
-  if [[ ! -e "${BUILD_SELECT_SH:=${scr_pre:?}/build-select.sh}" ]]
-  then unset BUILD_SELECT_SH
-    echo "No custom build rules (BUILD_SELECT_SH not found)" >&2
+  if [[ ! -e "${BUILD_SELECT_SH:?}" ]]; then
+    unset BUILD_SELECT_SH
+    echo "No custom build rules (BUILD_SELECT_SH=${BUILD_SELECT_SH@Q})" >&2
   else
     \builtin . "${BUILD_SELECT_SH:?}" && exit || {
       local st=$?
@@ -58,7 +59,7 @@ default_do_main() {
 
     # Default build target
   ( all|@all|:all )
-        redo-always && redo-ifchange "${xredo_all_targets[@]}"
+        redo-always && redo-ifchange "${xredo_all_targets[@]:?}"
       ;;
 
   ( * ) false

@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
+shopt -s failglob nullglob
 IFS=$' \t\n'
 
 [[ ! -e .env.sh ]] || \builtin . ./.env.sh
+
+: "${US_SKELETON_DIR:=/src/local/user-script-template+dev}"
+PATH+=:"${US_SKELETON_DIR:?}/tool/local"
+
+scr_pre=tool/local
+PATH+=:$scr_pre
+
+\builtin . setup_common.bash
 
 \builtin command aider \
   --no-show-release-notes --no-gitignore \

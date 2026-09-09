@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Initial linkml target recipes
+
 :xredo-build-schema-recipe() {
   local {in,out}put
   IFS=: read -r input output <<<"${XREDO_TARGET##@build:schema:}"

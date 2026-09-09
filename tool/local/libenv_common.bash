@@ -16,5 +16,5 @@ PATH+=:$US_BIN
 us_arr_pre=User-Script.Array.
 lib_require envd >&2
 lib_init envd >&2
-echo ${0##*/}: common_libenv: Load OK >&2
-# Id: common_libenv                          vim:set ft=bash sw=2 sts=2 et:
+echo ${0##*/}: libenv_common: Load OK >&2
+# Id: libenv_common                          vim:set ft=bash sw=2 sts=2 et:

@@ -15,4 +15,4 @@
 '[^\\\]]path_append\>'
 # TODO: see guard prefix diag rules: eval us_part
 #
-# Id: diag_forbidden_patterns  ex:ft=bash
+# Id: diag_forbidden_patterns                                       ex:ft=bash:

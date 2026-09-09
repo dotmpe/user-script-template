@@ -11,8 +11,10 @@ disable=SC1007 # Remove space after = if trying to assign a value (for empty str
 disable=SC2015
 # SC2016: Expressions don't expand in single quotes, use double quotes for that.
 disable=SC2016
+
 # SC2034: VAR appears unused. Verify use (or export if used externally)
 disable=SC2034
+
 # SC2086 # double-quote to prevent globbing and word splitting
 disable=SC2086 # Not going to quote every var, also i'll use double quotes to prevent expansion when needed; see 2046
 
@@ -24,12 +26,15 @@ disable=SC2059 # Don't use variables in the printf format string. Use printf
 disable=SC2090 # Quotes/backslashes in this variable will not be respected.
 
 disable=SC2119 # 2119: No "$@" noob help
+disable=SC2120 # Function references arguments, but none are ever passed.
 
 disable=SC2128 # Expanding an array without an index only gives the first element.
 
-disable=SC2148 # Tips depend on target shell and y...
+#disable=SC2140 # Word is of the form "A"B"C" (B indicated). Did you mean "ABC" or "A\"B\"C"?
 
-disable=SC2154 # <Var> is referenced but not assigned
+#disable=SC2148 # Tips depend on target shell and y...
+
+#disable=SC2154 # Variable is referenced but not assigned.
 
 disable=SC2166 # Prefer [ p ] && [ q ] as [ p -a q ] is not well defined
 

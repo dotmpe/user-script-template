@@ -1,0 +1,18 @@
+#shellcheck disable=2288
+# Explicit escapes on trailing-; if they must be used
+'[^;\\];$'
+# Consider writing to USER_FD or making another channel
+#'>&2 '
+# All of these must have [:._] prefix or use escape as well
+'[^\\:._]pass\>'
+'[^\\:._]ignore\>'
+'[^\\:._]failerr\>'
+# Possible no-op/not-implemented lines should use TODO:
+'^\ *:\ *$'
+# Don't use true as command, just type :
+'^\ *true\ *'
+# More escaped reserved names
+'[^\\\]]path_append\>'
+# TODO: see guard prefix diag rules: eval us_part
+#
+# Id: diag_forbidden_patterns  ex:ft=bash

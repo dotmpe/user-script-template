@@ -1,0 +1,30 @@
+# Configuration for https://github.com/adrienverge/yamllint
+---
+extends: default
+
+ignore:
+  # Ignore schema files that may not conform due to imports.
+  - doc/schema/*.yaml
+
+rules:
+  # document-start: disable  # Don't check if document has a start marker (---).
+  line-length: disable
+    # max: 88
+    # level: warning
+    # allow-non-breakable-words: true
+    # allow-non-breakable-inline-mappings: true
+  comments-indentation: disable
+  comments:
+    require-starting-space: true
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+  commas: disable
+    # level: disable
+    # max-spaces-after: 0
+    # min-spaces-after: 1
+  indentation:
+    spaces: 2
+    indent-sequences: consistent
+  # new-lines: disable  # Don't check for type of new line characters.
+---

@@ -1,0 +1,10 @@
+---
+# Enable most rules by default
+default: true
+
+# Common relaxations for real projects / GitHub-flavoured Markdown
+MD013: false          # line length (let Prettier or your own wrapping handle this)
+# MD033: false          # allow inline HTML
+# MD041: false          # first line doesn't have to be a top-level heading
+# MD024: false          # allow duplicate headings (useful in long docs)
+# MD036: false          # emphasis used instead of heading (sometimes intentional)
